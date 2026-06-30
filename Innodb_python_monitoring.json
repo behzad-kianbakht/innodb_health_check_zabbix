@@ -1,0 +1,708 @@
+{
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "e97c78b22b9f4e0b8a3d536167dfc77e",
+                "name": "P&C Templates"
+            },
+            {
+                "uuid": "ad1662b77d954467a33fd636ae7acb4b",
+                "name": "Templates / MySQL"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "c28f9c7874cc4843ae601d074d80e1ee",
+                "template": "MySQL InnoDB Cluster by Python",
+                "name": "MySQL InnoDB Cluster by Python",
+                "description": "This template is used for monitoring a MySQL InnoDB Cluster.\nThe script is written in Python and located in the path /usr/lib/zabbix/externalscripts.\nIt operates in two modes:\n\n- Value mode: retrieves specific data when the input is value.\n\n- Discovery mode: performs auto-discovery when the input is discovery.\n\nIn the macro section, you must define the list of cluster nodes in the format [node1, node2, ...].\nAt least one reachable node is required.\nYou must also provide a valid username and password for database access in the macro configuration.\n\nMonitoring logs are stored in the directory:\n/var/log/zabbix/MysqlInnodb\n\nTo avoid conflicts with the mysqlsh command logs, the Python script automatically sets the mysqlsh execution log path in the environment to:\n/var/log/zabbix/MysqlInnodb/mysqlsh",
+                "vendor": {
+                    "name": "P&C",
+                    "version": "1.0.0"
+                },
+                "groups": [
+                    {
+                        "name": "P&C Templates"
+                    },
+                    {
+                        "name": "Templates / MySQL"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "093dbdc6819b4d7e8fb94b2cdcf1afc3",
+                        "name": "Cluster Errors",
+                        "type": "DEPENDENT",
+                        "key": "clusterErrors",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.defaultReplicaSet.clusterErrors[0]"
+                                ]
+                            },
+                            {
+                                "type": "CHECK_JSON_ERROR",
+                                "parameters": [
+                                    "$.defaultReplicaSet.clusterErrors[0]"
+                                ],
+                                "error_handler": "CUSTOM_ERROR",
+                                "error_handler_params": "The cluster data did not show any errors Field"
+                            }
+                        ],
+                        "master_item": {
+                            "key": "InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "Type",
+                                "value": "Cluster"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "996cad08ee184946b98782a12f182e1d",
+                        "name": "Cluster Name",
+                        "type": "DEPENDENT",
+                        "key": "clusterName",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.clusterName"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "Type",
+                                "value": "Cluster"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "3f18a70af9ce41098580b2483387778a",
+                                "expression": "last(/MySQL InnoDB Cluster by Python/clusterName,#1)<>last(/MySQL InnoDB Cluster by Python/clusterName,#2)",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/MySQL InnoDB Cluster by Python/clusterName,#1)=last(/MySQL InnoDB Cluster by Python/clusterName,#2)",
+                                "name": "Cluster Primary Node Has been Changed",
+                                "priority": "INFO",
+                                "tags": [
+                                    {
+                                        "tag": "To",
+                                        "value": "#ITS DC DBA"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "733d2bd994b547da98b35eba1ec2138e",
+                        "name": "Group Information Source Member",
+                        "type": "DEPENDENT",
+                        "key": "groupInformationSourceMember",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.groupInformationSourceMember"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "Type",
+                                "value": "Cluster"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "0d23a531e0ce4426a699319e4850a7ce",
+                        "name": "Master Fetch Innodb Cluster Data",
+                        "type": "EXTERNAL",
+                        "key": "InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}]",
+                        "value_type": "TEXT",
+                        "tags": [
+                            {
+                                "tag": "Type",
+                                "value": "Master"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "6deca552dc884d06bd891f03ccab3aef",
+                                "expression": "nodata(/MySQL InnoDB Cluster by Python/InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}],5m)=1",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "nodata(/MySQL InnoDB Cluster by Python/InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}],5m)=0",
+                                "name": "Nodata On InnodB Cluster",
+                                "priority": "HIGH",
+                                "description": "Zabbix Can not fetch data from Cluster",
+                                "tags": [
+                                    {
+                                        "tag": "Cc",
+                                        "value": "#ITS PerformanceCapacity Mgmt"
+                                    },
+                                    {
+                                        "tag": "Cc",
+                                        "value": "itsservicedesk"
+                                    },
+                                    {
+                                        "tag": "Cc",
+                                        "value": "{$SUPPORT_TEAM}"
+                                    },
+                                    {
+                                        "tag": "EventAssignee",
+                                        "value": "DC DBA"
+                                    },
+                                    {
+                                        "tag": "To",
+                                        "value": "#ITS DC DBA"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9dffad908ee3480a8eeecd149161779d",
+                        "name": "Primary Node",
+                        "type": "DEPENDENT",
+                        "key": "primary",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.defaultReplicaSet.primary"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "Type",
+                                "value": "Cluster"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e91afcb2997a4963a36490ec830e217b",
+                        "name": "SSL Status",
+                        "type": "DEPENDENT",
+                        "key": "ssl",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.defaultReplicaSet.ssl"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "Type",
+                                "value": "Cluster"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "3f3c93ddf23f44cd9d5cb8b4f8d19257",
+                        "name": "Cluster Status",
+                        "type": "DEPENDENT",
+                        "key": "status",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.defaultReplicaSet.status"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "Type",
+                                "value": "Cluster"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "56a47fef254846fabb7befa7b59bdc5c",
+                                "expression": "last(/MySQL InnoDB Cluster by Python/status,#5)<>\"OK\" or nodata(/MySQL InnoDB Cluster by Python/status,5m)=1",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/MySQL InnoDB Cluster by Python/status,#5)=\"OK\" and nodata(/MySQL InnoDB Cluster by Python/status,5m)=0",
+                                "name": "Cluster Status is Not OK",
+                                "priority": "DISASTER",
+                                "dependencies": [
+                                    {
+                                        "name": "Nodata On InnodB Cluster",
+                                        "expression": "nodata(/MySQL InnoDB Cluster by Python/InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}],5m)=1",
+                                        "recovery_expression": "nodata(/MySQL InnoDB Cluster by Python/InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}],5m)=0"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "Cc",
+                                        "value": "itsservicedesk"
+                                    },
+                                    {
+                                        "tag": "Cc",
+                                        "value": "{$SUPPORT_TEAM}"
+                                    },
+                                    {
+                                        "tag": "EventAssignee",
+                                        "value": "DC DBA"
+                                    },
+                                    {
+                                        "tag": "To",
+                                        "value": "#ITS DC DBA"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b617f6ad9d704ade87f7078cd049c9e4",
+                        "name": "Cluster Status Text",
+                        "type": "DEPENDENT",
+                        "key": "statusText",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.defaultReplicaSet.statusText"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "Type",
+                                "value": "Cluster"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "6599382ebb844813a8ae30a807978cb6",
+                        "name": "Topology Mode",
+                        "type": "DEPENDENT",
+                        "key": "topologyMode",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.defaultReplicaSet.topologyMode"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "Type",
+                                "value": "Cluster"
+                            }
+                        ]
+                    }
+                ],
+                "discovery_rules": [
+                    {
+                        "uuid": "e348cd65d5a84bffad92b158ea829e9c",
+                        "name": "Master Fetch Innodb Cluster Members",
+                        "type": "EXTERNAL",
+                        "key": "InnoDB_Cluster_Monitoring.py[discovery,{$USERNAME},{$PASSWORD},{$MEMBERSLIST}]",
+                        "item_prototypes": [
+                            {
+                                "uuid": "4a4142d85b4146dea0c5399dfd98138b",
+                                "name": "Address : {#MEMBER}",
+                                "type": "DEPENDENT",
+                                "key": "address[{#MEMBER}]",
+                                "value_type": "TEXT",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.defaultReplicaSet.topology[\"{#MEMBER}\"].address"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "Node",
+                                        "value": "{#MEMBER}"
+                                    },
+                                    {
+                                        "tag": "Type",
+                                        "value": "Node"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "ff66f3d9a6a64e7ab852720c07d9eb4f",
+                                "name": "Member Role : {#MEMBER}",
+                                "type": "DEPENDENT",
+                                "key": "memberRole[{#MEMBER}]",
+                                "value_type": "TEXT",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.defaultReplicaSet.topology[\"{#MEMBER}\"].memberRole"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "Node",
+                                        "value": "{#MEMBER}"
+                                    },
+                                    {
+                                        "tag": "Type",
+                                        "value": "Node"
+                                    }
+                                ],
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "5bb9e3ba03fb40f6ab472022d00b2877",
+                                        "expression": "(last(/MySQL InnoDB Cluster by Python/memberRole[{#MEMBER}],#1)<>last(/MySQL InnoDB Cluster by Python/memberRole[{#MEMBER}],#1))=1",
+                                        "recovery_mode": "RECOVERY_EXPRESSION",
+                                        "recovery_expression": "(last(/MySQL InnoDB Cluster by Python/memberRole[{#MEMBER}],#1)=last(/MySQL InnoDB Cluster by Python/memberRole[{#MEMBER}],#1))=1",
+                                        "name": "Role Node {#MEMBER} has been Changed",
+                                        "priority": "INFO",
+                                        "dependencies": [
+                                            {
+                                                "name": "Cluster Status is Not OK",
+                                                "expression": "last(/MySQL InnoDB Cluster by Python/status,#5)<>\"OK\" or nodata(/MySQL InnoDB Cluster by Python/status,5m)=1",
+                                                "recovery_expression": "last(/MySQL InnoDB Cluster by Python/status,#5)=\"OK\" and nodata(/MySQL InnoDB Cluster by Python/status,5m)=0"
+                                            },
+                                            {
+                                                "name": "Nodata On InnodB Cluster",
+                                                "expression": "nodata(/MySQL InnoDB Cluster by Python/InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}],5m)=1",
+                                                "recovery_expression": "nodata(/MySQL InnoDB Cluster by Python/InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}],5m)=0"
+                                            },
+                                            {
+                                                "name": "Node {#MEMBER} Is Not ONLINE",
+                                                "expression": "last(/MySQL InnoDB Cluster by Python/status[{#MEMBER}],#5)<>\"ONLINE\"",
+                                                "recovery_expression": "last(/MySQL InnoDB Cluster by Python/status[{#MEMBER}],#5)=\"ONLINE\""
+                                            }
+                                        ],
+                                        "tags": [
+                                            {
+                                                "tag": "Cc",
+                                                "value": "{$CC}"
+                                            },
+                                            {
+                                                "tag": "To",
+                                                "value": "#ITS DC DBA"
+                                            },
+                                            {
+                                                "tag": "Type",
+                                                "value": "InnoDB"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "7091bafe824d463687fe2f0292a3e0a8",
+                                "name": "Mode : {#MEMBER}",
+                                "type": "DEPENDENT",
+                                "key": "mode[{#MEMBER}]",
+                                "value_type": "TEXT",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.defaultReplicaSet.topology[\"{#MEMBER}\"].mode"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "Node",
+                                        "value": "{#MEMBER}"
+                                    },
+                                    {
+                                        "tag": "Type",
+                                        "value": "Node"
+                                    }
+                                ],
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "1e9da65ec0794de5a318d6588d51c595",
+                                        "expression": "(last(/MySQL InnoDB Cluster by Python/mode[{#MEMBER}],#1)<> last(/MySQL InnoDB Cluster by Python/mode[{#MEMBER}],#2)) = 1",
+                                        "recovery_mode": "RECOVERY_EXPRESSION",
+                                        "recovery_expression": "(last(/MySQL InnoDB Cluster by Python/mode[{#MEMBER}],#1)= last(/MySQL InnoDB Cluster by Python/mode[{#MEMBER}],#2)) = 1",
+                                        "name": "Mode Node {#MEMBER} has been Changed",
+                                        "priority": "INFO",
+                                        "dependencies": [
+                                            {
+                                                "name": "Cluster Status is Not OK",
+                                                "expression": "last(/MySQL InnoDB Cluster by Python/status,#5)<>\"OK\" or nodata(/MySQL InnoDB Cluster by Python/status,5m)=1",
+                                                "recovery_expression": "last(/MySQL InnoDB Cluster by Python/status,#5)=\"OK\" and nodata(/MySQL InnoDB Cluster by Python/status,5m)=0"
+                                            },
+                                            {
+                                                "name": "Nodata On InnodB Cluster",
+                                                "expression": "nodata(/MySQL InnoDB Cluster by Python/InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}],5m)=1",
+                                                "recovery_expression": "nodata(/MySQL InnoDB Cluster by Python/InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}],5m)=0"
+                                            },
+                                            {
+                                                "name": "Node {#MEMBER} Is Not ONLINE",
+                                                "expression": "last(/MySQL InnoDB Cluster by Python/status[{#MEMBER}],#5)<>\"ONLINE\"",
+                                                "recovery_expression": "last(/MySQL InnoDB Cluster by Python/status[{#MEMBER}],#5)=\"ONLINE\""
+                                            }
+                                        ],
+                                        "tags": [
+                                            {
+                                                "tag": "Cc",
+                                                "value": "{$CC}"
+                                            },
+                                            {
+                                                "tag": "To",
+                                                "value": "#ITS DC DBA"
+                                            },
+                                            {
+                                                "tag": "Type",
+                                                "value": "InnoDB"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "3dea301209b14b77b6d612a8dcd97d57",
+                                "name": "Read Replicas : {#MEMBER}",
+                                "type": "DEPENDENT",
+                                "key": "readReplicas[{#MEMBER}]",
+                                "value_type": "TEXT",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.defaultReplicaSet.topology[\"{#MEMBER}\"].readReplicas"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "Node",
+                                        "value": "{#MEMBER}"
+                                    },
+                                    {
+                                        "tag": "Type",
+                                        "value": "Node"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "5bbe6af2f71c4f9a9171660511a84cda",
+                                "name": "Replication Lag : {#MEMBER}",
+                                "type": "DEPENDENT",
+                                "key": "replicationLag[{#MEMBER}]",
+                                "value_type": "TEXT",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.defaultReplicaSet.topology[\"{#MEMBER}\"].replicationLag"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "Node",
+                                        "value": "{#MEMBER}"
+                                    },
+                                    {
+                                        "tag": "Type",
+                                        "value": "Node"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "232f8dbf6ccb45c7b29796c6edeb672e",
+                                "name": "Role : {#MEMBER}",
+                                "type": "DEPENDENT",
+                                "key": "role[{#MEMBER}]",
+                                "value_type": "TEXT",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.defaultReplicaSet.topology[\"{#MEMBER}\"].role"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "Node",
+                                        "value": "{#MEMBER}"
+                                    },
+                                    {
+                                        "tag": "Type",
+                                        "value": "Node"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "ec22cd2cc2a644a7b4191596cc3adb39",
+                                "name": "Node Status : {#MEMBER}",
+                                "type": "DEPENDENT",
+                                "key": "status[{#MEMBER}]",
+                                "value_type": "TEXT",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.defaultReplicaSet.topology[\"{#MEMBER}\"].status"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "Node",
+                                        "value": "{#MEMBER}"
+                                    },
+                                    {
+                                        "tag": "Type",
+                                        "value": "Node"
+                                    }
+                                ],
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "f0ef46ea4e5a43f991aed2619293ec92",
+                                        "expression": "last(/MySQL InnoDB Cluster by Python/status[{#MEMBER}],#5)<>\"ONLINE\"",
+                                        "recovery_mode": "RECOVERY_EXPRESSION",
+                                        "recovery_expression": "last(/MySQL InnoDB Cluster by Python/status[{#MEMBER}],#5)=\"ONLINE\"",
+                                        "name": "Node {#MEMBER} Is Not ONLINE",
+                                        "priority": "WARNING",
+                                        "tags": [
+                                            {
+                                                "tag": "Cc",
+                                                "value": "{$CC}"
+                                            },
+                                            {
+                                                "tag": "To",
+                                                "value": "#ITS DC DBA"
+                                            },
+                                            {
+                                                "tag": "Type",
+                                                "value": "InnoDB"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "2bb99d3b4b37428e8a450fe35ce94039",
+                                "name": "Version : {#MEMBER}",
+                                "type": "DEPENDENT",
+                                "key": "version[{#MEMBER}]",
+                                "value_type": "TEXT",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.defaultReplicaSet.topology[\"{#MEMBER}\"].version"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "InnoDB_Cluster_Monitoring.py[value,{$USERNAME},{$PASSWORD},{$MEMBERSLIST},{HOST.NAME}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "Node",
+                                        "value": "{#MEMBER}"
+                                    },
+                                    {
+                                        "tag": "Type",
+                                        "value": "Node"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "class",
+                        "value": "Innodb Cluster"
+                    },
+                    {
+                        "tag": "subclass",
+                        "value": "sql"
+                    },
+                    {
+                        "tag": "target",
+                        "value": "mysql"
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$MEMBERSLIST}",
+                        "description": "InnoDB Members list - ex : [Node1,Node2,...] (one connected node is enough)"
+                    },
+                    {
+                        "macro": "{$PASSWORD}",
+                        "description": "InnoDB cluster password"
+                    },
+                    {
+                        "macro": "{$SERVERNAME}"
+                    },
+                    {
+                        "macro": "{$SERVICENAME}"
+                    },
+                    {
+                        "macro": "{$USERNAME}",
+                        "description": "InnoDB cluster user name"
+                    }
+                ]
+            }
+        ]
+    }
+}
